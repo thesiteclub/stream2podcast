@@ -1,5 +1,5 @@
 # The URL for the audio stream
-STREAM_URL='http://stream2137.init7.net:80'
+STREAM_URL='http://friends-of-radius.ethz.ch:8000/radiocrazy-classical.mp3'
 #
 STREAM_NAME='pdp_classical'
 #
