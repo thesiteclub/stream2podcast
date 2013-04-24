@@ -28,7 +28,8 @@ dep_check () {
 ################################################################################
 
 rip_stream () {
-	 streamripper "$STREAM_URL" --quiet -A -a $RSS_DIR/$STREAM_FILE -l $STREAM_LENGTH
+	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
+	-l $STREAM_LENGTH
 
 	if [ $? -ne 0 ]
 	then
@@ -43,7 +44,7 @@ rip_stream () {
 ################################################################################
 
 add_tags () {
-	eyeD3 --add-image="${IMAGE}:OTHER" -Y $YEAR \
+	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y $YEAR \
 	-a "$STREAM_AUTHOR" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
 
 	if [ $? -ne 0 ]
@@ -157,5 +158,8 @@ rip_stream
 
 # Set ID3 tags, including image
 add_tags
+
+# Create RSS feed
+build_rss
 
 log 'Finished at' `date`
