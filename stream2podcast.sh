@@ -33,7 +33,7 @@ rip_stream () {
 
 	if [ ?$ -ne 0 ]
 	then
-		log 'Stream ripping failed. Bailing out.'
+		log 'Stream ripping failed. I quit.'
 		exit 1
 	fi
 
@@ -120,16 +120,23 @@ then
 	exec >> $LOG 2>&1
 fi
 
+log 'stream2podcast started'
+
 if [ ! -e $CONFIG ]
 then
-	log "Config file not found at $CONFIG"
+	log "Config file ($CONFIG) does not exist. I quit."
 	exit 1
 fi
 
 source $CONFIG
 
-log 'stream2podcast started'
 log 'Recording to' $FILE_NAME
+
+if [ ! -d $RSS_DIR ]
+then
+	log "RSS_DIR ($RSS_DIR) does not exist. I quit."
+	exit 1
+fi
 
 # Check for dependancies
 dep_check
