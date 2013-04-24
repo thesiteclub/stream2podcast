@@ -1,0 +1,24 @@
+# The URL for the audio stream
+STREAM_URL='http://audio.example.com/epicjamsession'
+#
+STREAM_NAME='epicjamsession'
+#
+STREAM_FILE="${STREAM_NAME}-${DATE_SHORT}.mp3"
+# Duration in seconds
+STREAM_LENGTH=7380
+#
+STREAM_AUTHOR=''
+#
+RSS_TITLE='My epic jam session'
+#
+RSS_DESCRIP='The Best of the Midwest!'
+#
+RSS_DIR='/var/www/html/epicjamsession'
+# Partial URL (host/directory) for your podcast.
+RSS_URL='http://mywebsite.hostingco.com/epicjamsession'
+#
+RSS_EMAIL='me@hostco.com'
+#
+LOG=~/log/${STREAMNAME}.${DATE_SHORT}
+#
+IMAGE="${RSSURL}/epicjamsession.png"
