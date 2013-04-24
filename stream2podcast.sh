@@ -1,7 +1,6 @@
 #! /bin/bash
 
 DEBUG=0
-DATE_SHORT="`date +%F`"
 YEAR="`date +%Y`"
 VERSION=1
 CONFIG=~/stream2podcast.conf
@@ -31,7 +30,7 @@ dep_check () {
 rip_stream () {
 	 streamripper "$STREAM_URL" --quiet -A -a $RSS_DIR/$STREAM_FILE -l $STREAM_LENGTH
 
-	if [ ?$ -ne 0 ]
+	if [ $? -ne 0 ]
 	then
 		log 'Stream ripping failed. I quit.'
 		exit 1
@@ -39,6 +38,19 @@ rip_stream () {
 
 	# Streamripper creates .cue files which we don't want nor need
 	/bin/rm -f $RSS_DIR/*.cue
+}
+
+################################################################################
+
+add_tags () {
+	eyeD3 --add-image="${IMAGE}:OTHER" -Y $YEAR \
+	-a "$STREAM_AUTHOR" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
+
+	if [ $? -ne 0 ]
+	then
+		log 'ID3 tagging failed. I quit.'
+		exit 1
+	fi
 }
 
 ################################################################################
@@ -90,7 +102,7 @@ usage()
 	echo "  -c FILE    Use FILE as the config file. Default is $CONFIG"
 	echo '  -D         Debug (log to stdout, not file)'
 	echo '  -V         Version'
-	die 1
+	exit 1
 }
 
 ################################################################################
@@ -115,13 +127,6 @@ do
 	esac
 done
 
-if [ $DEBUG = 0 ]
-then
-	exec >> $LOG 2>&1
-fi
-
-log 'stream2podcast started'
-
 if [ ! -e $CONFIG ]
 then
 	log "Config file ($CONFIG) does not exist. I quit."
@@ -130,7 +135,13 @@ fi
 
 source $CONFIG
 
-log 'Recording to' $FILE_NAME
+if [ $DEBUG = 0 ]
+then
+	exec >> $LOG 2>&1
+fi
+
+log 'stream2podcast started'
+log 'Recording to' $RSS_DIR/$STREAM_FILE
 
 if [ ! -d $RSS_DIR ]
 then
@@ -145,7 +156,6 @@ dep_check
 rip_stream
 
 # Set ID3 tags, including image
-eyeD3 --add-image="${IMAGE}:OTHER" -Y $YEAR \
--a "$STREAM_ARTIST" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
+add_tags
 
 log 'Finished at' `date`

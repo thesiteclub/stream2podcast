@@ -1,24 +1,24 @@
 # The URL for the audio stream
-STREAM_URL='http://audio.example.com/epicjamsession'
+STREAM_URL='http://stream2137.init7.net:80'
 #
-STREAM_NAME='epicjamsession'
+STREAM_NAME='pdp_classical'
 #
-STREAM_FILE="${STREAM_NAME}-${DATE_SHORT}.mp3"
+STREAM_FILE=$STREAM_NAME'-'`date +%F`'.mp3'
 # Duration in seconds
-STREAM_LENGTH=7380
+STREAM_LENGTH=120
 #
-STREAM_AUTHOR=''
+STREAM_AUTHOR='Public Domain Project'
 #
-RSS_TITLE='My epic jam session'
+RSS_TITLE='PDP Classical'
 #
-RSS_DESCRIP='The Best of the Midwest!'
+RSS_DESCRIP='Classical music provided by the Public Domain Project (http://radio.publicdomainproject.org)'
 #
-RSS_DIR='/var/www/html/epicjamsession'
+RSS_DIR='/var/www/html/'$STREAM_NAME
 # Partial URL (host/directory) for your podcast.
-RSS_URL='http://mywebsite.hostingco.com/epicjamsession'
+RSS_URL='http://podcasts.example.com/'$STREAM_NAME
 #
-RSS_EMAIL='me@hostco.com'
+RSS_EMAIL='podcast_admin@example.com'
 #
-LOG=~/log/${STREAMNAME}.${DATE_SHORT}
+LOG=~/log/${STREAM_NAME}.`date +%F`
 #
-IMAGE="${RSSURL}/epicjamsession.png"
+IMAGE="${RSS_DIR}/pdp_classical.png"
