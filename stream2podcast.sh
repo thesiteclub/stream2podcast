@@ -4,6 +4,7 @@ DEBUG=0
 YEAR="`date +%Y`"
 VERSION=1
 CONFIG=~/stream2podcast.conf
+RSS_ONLY=0
 
 ################################################################################
 
@@ -28,6 +29,8 @@ dep_check () {
 ################################################################################
 
 rip_stream () {
+	log 'Recording to' $RSS_DIR/$STREAM_FILE
+
 	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
 	-l $STREAM_LENGTH
 
@@ -44,6 +47,8 @@ rip_stream () {
 ################################################################################
 
 add_tags () {
+	log 'Adding ID3 tags to' $RSS_DIR/$STREAM_FILE
+
 	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y $YEAR \
 	-a "$STREAM_AUTHOR" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
 
@@ -57,8 +62,8 @@ add_tags () {
 ################################################################################
 
 build_rss () {
-	# Replace old rss feed with new header
 	log 'Building rss feed'
+	# Replace old rss feed with new header
 	(
 		echo '<?xml version="1.0"?>'
 		echo '<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">'
@@ -74,6 +79,7 @@ build_rss () {
 		echo '<ttl>1</ttl>'
 	) > $RSS_DIR/rss
 
+	# Add entries for each file
 	for FILE in `ls -1 ${RSS_DIR}/*.mp3`
 	do
 		FILE_DATE="`date -r $FILE`"
@@ -102,13 +108,14 @@ usage()
 	echo "usage: stream2podcast.sh [options]"
 	echo "  -c FILE    Use FILE as the config file. Default is $CONFIG"
 	echo '  -D         Debug (log to stdout, not file)'
+	echo '  -r         Rebuild rss file'
 	echo '  -V         Version'
 	exit 1
 }
 
 ################################################################################
 
-while getopts 'c:DV' o
+while getopts 'c:DrV' o
 do
 	case "$o" in
 	'c')
@@ -116,6 +123,9 @@ do
 		;;
 	'D')
 		DEBUG=1
+		;;
+	'r')
+		RSS_ONLY=1
 		;;
 	'V')
 		echo $VERSION
@@ -136,13 +146,12 @@ fi
 
 source $CONFIG
 
-if [ $DEBUG = 0 ]
+if [ $DEBUG -eq 0 ]
 then
 	exec >> $LOG 2>&1
 fi
 
 log 'stream2podcast started'
-log 'Recording to' $RSS_DIR/$STREAM_FILE
 
 if [ ! -d $RSS_DIR ]
 then
@@ -153,11 +162,14 @@ fi
 # Check for dependancies
 dep_check
 
-# Record stream
-rip_stream
+if [ $RSS_ONLY -eq 0 ]
+then
+	# Record stream
+	rip_stream
 
-# Set ID3 tags, including image
-add_tags
+	# Set ID3 tags, including image
+	add_tags
+fi
 
 # Create RSS feed
 build_rss
