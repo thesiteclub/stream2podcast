@@ -15,11 +15,9 @@ log () {
 ################################################################################
 
 dep_check () {
-	for APP in streamripper eyeD3
-	do
+	for APP in streamripper eyeD3; do
 		which $APP > /dev/null 2>&1
-		if [ $? -ne 0 ]
-		then
+		if [ $? -ne 0 ]; then
 			log $APP 'could not be found. Please install it.'
 			exit 1
 		fi
@@ -34,8 +32,7 @@ rip_stream () {
 	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
 	-l $STREAM_LENGTH
 
-	if [ $? -ne 0 ]
-	then
+	if [ $? -ne 0 ]; then
 		log 'Stream ripping failed. I quit.'
 		exit 1
 	fi
@@ -52,8 +49,7 @@ add_tags () {
 	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y $YEAR \
 	-a "$STREAM_AUTHOR" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
 
-	if [ $? -ne 0 ]
-	then
+	if [ $? -ne 0 ]; then
 		log 'ID3 tagging failed. I quit.'
 		exit 1
 	fi
@@ -80,8 +76,7 @@ build_rss () {
 	) > $RSS_DIR/rss
 
 	# Add entries for each file
-	for FILE in `ls -1 ${RSS_DIR}/*.mp3`
-	do
+	for FILE in `ls -1 ${RSS_DIR}/*.mp3`; do
 		FILE_DATE="`date -r $FILE`"
 		FILE_NAME="`/bin/basename ${FILE}`"
 		FILE_SIZE=`stat -c '%s' $FILE`
@@ -115,8 +110,7 @@ usage()
 
 ################################################################################
 
-while getopts 'c:DrV' o
-do
+while getopts 'c:DrV' o; do
 	case "$o" in
 	'c')
 		CONFIG=$OPTARG
@@ -138,23 +132,20 @@ do
 	esac
 done
 
-if [ ! -e $CONFIG ]
-then
+if [ ! -e $CONFIG ]; then
 	log "Config file ($CONFIG) does not exist. I quit."
 	exit 1
 fi
 
 source $CONFIG
 
-if [ $DEBUG -eq 0 ]
-then
+if [ $DEBUG -eq 0 ]; then
 	exec >> $LOG 2>&1
 fi
 
 log 'stream2podcast started'
 
-if [ ! -d $RSS_DIR ]
-then
+if [ ! -d $RSS_DIR ]; then
 	log "RSS_DIR ($RSS_DIR) does not exist. I quit."
 	exit 1
 fi
@@ -162,8 +153,7 @@ fi
 # Check for dependancies
 dep_check
 
-if [ $RSS_ONLY -eq 0 ]
-then
+if [ $RSS_ONLY -eq 0 ]; then
 	# Record stream
 	rip_stream
 
