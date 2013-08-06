@@ -2,23 +2,30 @@
 STREAM_URL='http://friends-of-radius.ethz.ch:8000/radiocrazy-classical.mp3'
 #
 STREAM_NAME='pdp_classical'
-#
+# Name to use for recordings. ProTip: Add a timestamp so each recording is unique.
 STREAM_FILE=$STREAM_NAME'-'`date +%F`'.mp3'
-# Duration in seconds
+# Duration (seconds) to record.
+# ProTip: Start recording early and pad STREAM_LENGHT to ensure you get the
+# beginning and end of your show. The show doesn't run by your server's clock.
 STREAM_LENGTH=120
 #
 STREAM_AUTHOR='Public Domain Project'
-#
+# I think this is self explanatory, just as your title should be.
 RSS_TITLE='PDP Classical'
-#
+# See comment for RSS_TITLE.
 RSS_DESCRIP='Classical music provided by the Public Domain Project (http://radio.publicdomainproject.org)'
-#
+# Path where we will write recordings and the RSS feed.
 RSS_DIR='/var/www/html/'$STREAM_NAME
 # Partial URL (host/directory) for your podcast.
 RSS_URL='http://podcasts.example.com/'$STREAM_NAME
-#
+# Podcast RSS streams include an e-mail address. I don't know what this is used for. Perhaps contacting the feed owner?
 RSS_EMAIL='podcast_admin@example.com'
-#
+# Path for your log file.
 LOG=~/log/${STREAM_NAME}.`date +%F`
-#
+# Path to an image to embed in the ID3 tags.
 IMAGE="${RSS_DIR}/pdp_classical.png"
+# Maximum age (in days) of recordings. Set to 0 to turn off this cleanup.
+# This is used by find which rounds up. In other words, 25 hours old = 2 days.
+MAX_AGE=0
+# Maximum number of files to keep. Set to 0 to turn off this cleanup.
+MAX_FILES=0
