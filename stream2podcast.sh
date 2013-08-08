@@ -6,6 +6,9 @@ VERSION=1
 CONFIG=~/stream2podcast.conf
 RSS_ONLY=0
 
+# TODO: Define insane values for all important variables from the config file.
+# Check to ensure all are set. Set sane defaults for the rest.
+
 ################################################################################
 
 log () {
@@ -98,13 +101,31 @@ build_rss () {
 
 ################################################################################
 
+cleanup_recordings () {
+	log 'Deleting old recordings'
+
+	# Delete old files
+	if [ $MAX_AGE -gt 0 ]; then
+		find $RSS_DIR -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f | \
+			xargs /bin/rm
+	fi
+
+	# Delete files beyond $MAX_NUM. Sorted by name. Should this by date?
+	if [ $MAX_NUM -gt 0 ]; then
+		find $RSS_DIR -maxdepth 1 -name '*.mp3' -type f | sort -r | \
+			tail -n +$MAX_NUM | xargs /bin/rm
+	fi
+}
+
+################################################################################
+
 usage()
 {
 	echo "usage: stream2podcast.sh [options]"
-	echo "  -c FILE    Use FILE as the config file. Default is $CONFIG"
-	echo '  -D         Debug (log to stdout, not file)'
-	echo '  -r         Rebuild rss file'
-	echo '  -V         Version'
+	echo "	-c FILE	   Use FILE as the config file. Default is $CONFIG"
+	echo '	-D		   Debug (log to stdout, not file)'
+	echo '	-r		   Rebuild rss file'
+	echo '	-V		   Version'
 	exit 1
 }
 
@@ -160,6 +181,8 @@ if [ $RSS_ONLY -eq 0 ]; then
 	# Set ID3 tags, including image
 	add_tags
 fi
+
+cleanup_recordings
 
 # Create RSS feed
 build_rss
