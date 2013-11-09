@@ -3,8 +3,9 @@
 DEBUG=0
 YEAR="`date +%Y`"
 VERSION=1
-CONFIG=~/stream2podcast.conf
+CONFIG=~/conf/stream2podcast.conf
 RSS_ONLY=0
+LOG=~/log/stream2podcast.`date +%F`.log
 
 # TODO: Define insane values for all important variables from the config file.
 # Check to ensure all are set. Set sane defaults for the rest.

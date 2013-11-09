@@ -21,7 +21,7 @@ RSS_URL='http://podcasts.example.com/'$STREAM_NAME
 # Podcast RSS streams include an e-mail address. I don't know what this is used for. Perhaps contacting the feed owner?
 RSS_EMAIL='podcast_admin@example.com'
 # Path for your log file.
-LOG=~/log/${STREAM_NAME}.`date +%F`
+LOG=~/log/${STREAM_NAME}.`date +%F`.log
 # Path to an image to embed in the ID3 tags.
 IMAGE="${RSS_DIR}/pdp_classical.png"
 # Maximum age (in days) of recordings. Set to 0 to turn off this cleanup.
