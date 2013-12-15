@@ -10,6 +10,9 @@ LOG=~/log/stream2podcast.`date +%F`.log
 # TODO: Define insane values for all important variables from the config file.
 # Check to ensure all are set. Set sane defaults for the rest.
 
+MAX_AGE=0
+MAX_FILES=0
+
 ################################################################################
 
 log () {
@@ -36,6 +39,7 @@ rip_stream () {
 	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
 	-l $STREAM_LENGTH
 
+	# This failed when we got a 404 from the server. Need to fix.
 	if [ $? -ne 0 ]; then
 		log 'Stream ripping failed. I quit.'
 		exit 1
