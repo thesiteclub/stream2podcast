@@ -33,13 +33,42 @@ dep_check () {
 
 ################################################################################
 
+# Streamripper can't handle playlist (.m3u) files. These are usually just a list
+# of URLs we can stream from. We will do our best to pick one from the list.
+
+handle_m3u () {
+	echo $STREAM_URL | grep '.m3u$' > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		return
+	fi
+
+	log "STREAM_URL is a .m3u playlist. Attempting to pick a URL from that list."
+	local playlist=`mktemp`
+	curl -s $STREAM_URL -o $playlist > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		log "Fatal error: Could not download STREAM_URL ($STREAM_URL)."
+		/bin/rm $playlist
+		exit 1
+	fi
+	STREAM_URL=`grep '^http' $playlist | tail -1`
+	/bin/rm $playlist
+}
+
+################################################################################
+
 rip_stream () {
 	log 'Recording to' $RSS_DIR/$STREAM_FILE
 
 	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
 	-l $STREAM_LENGTH
 
-	# This failed when we got a 404 from the server. Need to fix.
+	# This failed when we got a 404 from the server. Perhaps streamripper
+	# doesn't follow convention and use a non-zero exit code to indicate errors?
+	# I'd really rather not have to parse stderr to see if we failed...
+	#
+	# error -5 [Could not connect to the stream. Try checking that the stream is
+	# up and that your proxy settings are correct.]
+
 	if [ $? -ne 0 ]; then
 		log 'Stream ripping failed. I quit.'
 		exit 1
@@ -180,6 +209,9 @@ fi
 dep_check
 
 if [ $RSS_ONLY -eq 0 ]; then
+	# If we are given a playlist, pick a URL from it
+	handle_m3u
+
 	# Record stream
 	rip_stream
 
