@@ -140,14 +140,14 @@ cleanup_recordings () {
 
 	# Delete old files
 	if [ $MAX_AGE -gt 0 ]; then
-		find $RSS_DIR -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f | \
-			xargs /bin/rm
+		find $RSS_DIR -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f -print0 | \
+			xargs -0r /bin/rm
 	fi
 
-	# Delete files beyond $MAX_NUM. Sorted by name. Should this by date?
-	if [ $MAX_NUM -gt 0 ]; then
-		find $RSS_DIR -maxdepth 1 -name '*.mp3' -type f | sort -r | \
-			tail -n +$MAX_NUM | xargs /bin/rm
+	# Delete files beyond $MAX_FILES. Sorted by name. Should this by date?
+	if [ $MAX_FILES -gt 0 ]; then
+		find $RSS_DIR -maxdepth 1 -name '*.mp3' -type f -print0 | sort -z | \
+			cut -d '' -f 1-10 | xargs -0r /bin/rm
 	fi
 }
 
