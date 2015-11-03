@@ -1,11 +1,11 @@
 #! /bin/bash
 
 DEBUG=0
-YEAR="`date +%Y`"
+YEAR=$(date +%Y)
 VERSION=1
 CONFIG=~/conf/stream2podcast.conf
 RSS_ONLY=0
-LOG=~/log/stream2podcast.`date +%F`.log
+LOG=~/log/stream2podcast.$(date +%F).log
 
 # TODO: Define insane values for all important variables from the config file.
 # Check to ensure all are set. Set sane defaults for the rest.
@@ -16,16 +16,16 @@ MAX_FILES=0
 ################################################################################
 
 log () {
-	echo `date +%T` "$@"
+	echo "$(date +%T) $@"
 }
 
 ################################################################################
 
 dep_check () {
 	for APP in streamripper eyeD3; do
-		which $APP > /dev/null 2>&1
+		which "$APP" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
-			log $APP 'could not be found. Please install it.'
+			log "$APP could not be found. Please install it."
 			exit 1
 		fi
 	done
@@ -37,30 +37,30 @@ dep_check () {
 # of URLs we can stream from. We will do our best to pick one from the list.
 
 handle_m3u () {
-	echo $STREAM_URL | grep '.m3u$' > /dev/null 2>&1
+	echo "$STREAM_URL" | grep '.m3u$' > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		return
 	fi
 
 	log "STREAM_URL is a .m3u playlist. Attempting to pick a URL from that list."
-	local playlist=`mktemp`
-	curl -s $STREAM_URL -o $playlist > /dev/null 2>&1
+	local playlist=$(mktemp)
+	curl -s "$STREAM_URL" -o "$playlist" > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		log "Fatal error: Could not download STREAM_URL ($STREAM_URL)."
-		/bin/rm $playlist
+		/bin/rm "$playlist"
 		exit 1
 	fi
-	STREAM_URL=`grep '^http' $playlist | tail -1`
-	/bin/rm $playlist
+	STREAM_URL=$(grep '^http' "$playlist" | tail -1)
+	/bin/rm "$playlist"
 }
 
 ################################################################################
 
 rip_stream () {
-	log 'Recording to' $RSS_DIR/$STREAM_FILE
+	log "Recording to $RSS_DIR/$STREAM_FILE"
 
-	 streamripper "$STREAM_URL" --quiet -o always -A -a $RSS_DIR/$STREAM_FILE \
-	-l $STREAM_LENGTH
+	 streamripper "$STREAM_URL" --quiet -o always -A -a "$RSS_DIR/$STREAM_FILE" \
+	-l "$STREAM_LENGTH"
 
 	# This failed when we got a 404 from the server. Perhaps streamripper
 	# doesn't follow convention and use a non-zero exit code to indicate errors?
@@ -75,16 +75,16 @@ rip_stream () {
 	fi
 
 	# Streamripper creates .cue files which we don't want nor need
-	/bin/rm -f $RSS_DIR/*.cue
+	find "$RSS_DIR" -name '*.cue' -print0 | xargs -0r /bin/rm
 }
 
 ################################################################################
 
 add_tags () {
-	log 'Adding ID3 tags to' $RSS_DIR/$STREAM_FILE
+	log "Adding ID3 tags to $RSS_DIR/$STREAM_FILE"
 
-	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y $YEAR \
-	-a "$STREAM_AUTHOR" -G Podcast $RSS_DIR/$STREAM_FILE > /dev/null
+	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y "$YEAR" \
+	-a "$STREAM_AUTHOR" -G Podcast "$RSS_DIR/$STREAM_FILE" > /dev/null
 
 	if [ $? -ne 0 ]; then
 		log 'ID3 tagging failed. I quit.'
@@ -101,36 +101,37 @@ build_rss () {
 		echo '<?xml version="1.0"?>'
 		echo '<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">'
 		echo '<channel>'
-		echo '<title>'${RSS_TITLE}'</title>'
-		echo '<link>'${RSS_URL}'</link>'
-		echo '<description>'${RSS_DESCRIP}'</description>'
+		echo "<title>$RSS_TITLE</title>"
+		echo "<link>$RSS_URL</link>"
+		echo "<description>$RSS_DESCRIP</description>"
 		echo '<language>en-us</language>'
 		echo '<copyright></copyright>'
-		echo '<itunes:image href="'$IMAGE'" />'
-		echo '<lastBuildDate>'`date`'</lastBuildDate>'
-		echo '<webMaster>'$RSS_EMAIL'</webMaster>'
+		echo "<itunes:image href='$IMAGE' />"
+		echo "<lastBuildDate>$(date)</lastBuildDate>"
+		echo "<webMaster>$RSS_EMAIL</webMaster>"
 		echo '<ttl>1</ttl>'
-	) > $RSS_DIR/rss
+	) > "$RSS_DIR/rss"
 
 	# Add entries for each file
-	for FILE in `ls -1 ${RSS_DIR}/*.mp3`; do
-		FILE_DATE="`date -r $FILE`"
-		FILE_NAME="`/bin/basename ${FILE}`"
-		FILE_SIZE=`stat -c '%s' $FILE`
+	for FILE in $(ls -1 $RSS_DIR/*.mp3); do
+		FILE_DATE=$(date -r "$FILE")
+		FILE_NAME=$(/bin/basename "$FILE")
+		FILE_SIZE=$(stat -c '%s' "$FILE")
 		(
 			echo '<item>'
-			echo '<title>'${FILE_NAME}'</title>'
-			echo '<pubDate>'${FILE_DATE}'</pubDate>'
-			echo '<itunes:duration>2:03:00</itunes:duration>'
-			echo '<itunes:author>'$STREAM_AUTHOR'</itunes:author>'
-			echo '<guid>'${FILE_NAME}'</guid>'
-			echo '<enclosure url="'${RSS_URL}/${FILE_NAME}'" length="'${FILE_SIZE}'" type="audio/mpeg"/>'
+			echo "<title>$FILE_NAME</title>"
+			echo "<pubDate>$FILE_DATE</pubDate>"
+			# TODO: read the duration from the file
+			echo "<itunes:duration>2:03:00</itunes:duration>"
+			echo "<itunes:author>$STREAM_AUTHOR</itunes:author>"
+			echo "<guid>$FILE_NAME</guid>"
+			echo "<enclosure url='$RSS_URL/$FILE_NAME' length='$FILE_SIZE' type='audio/mpeg'/>"
 			echo '</item>'
-		) >> $RSS_DIR/rss
+		) >> "$RSS_DIR/rss"
 	done
 
-	echo '</channel>' >> $RSS_DIR/rss
-	echo '</rss>' >> $RSS_DIR/rss
+	echo '</channel>' >> "$RSS_DIR/rss"
+	echo '</rss>' >> "$RSS_DIR/rss"
 }
 
 ################################################################################
@@ -140,13 +141,13 @@ cleanup_recordings () {
 
 	# Delete old files
 	if [ $MAX_AGE -gt 0 ]; then
-		find $RSS_DIR -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f -print0 | \
+		find "$RSS_DIR" -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f -print0 | \
 			xargs -0r /bin/rm
 	fi
 
 	# Delete files beyond $MAX_FILES. Sorted by name. Should this by date?
 	if [ $MAX_FILES -gt 0 ]; then
-		find $RSS_DIR -maxdepth 1 -name '*.mp3' -type f -print0 | sort -z | \
+		find "$RSS_DIR" -maxdepth 1 -name '*.mp3' -type f -print0 | sort -z | \
 			cut -d '' -f 1-10 | xargs -0r /bin/rm
 	fi
 }
@@ -168,7 +169,7 @@ usage()
 while getopts 'c:DrV' o; do
 	case "$o" in
 	'c')
-		CONFIG=$OPTARG
+		CONFIG="$OPTARG"
 		;;
 	'D')
 		DEBUG=1
@@ -177,7 +178,7 @@ while getopts 'c:DrV' o; do
 		RSS_ONLY=1
 		;;
 	'V')
-		echo $VERSION
+		echo "$VERSION"
 		exit 0
 		;;
 	'?')
@@ -187,20 +188,20 @@ while getopts 'c:DrV' o; do
 	esac
 done
 
-if [ ! -e $CONFIG ]; then
+if [ ! -e "$CONFIG" ]; then
 	log "Config file ($CONFIG) does not exist. I quit."
 	exit 1
 fi
 
-source $CONFIG
+source "$CONFIG"
 
 if [ $DEBUG -eq 0 ]; then
-	exec >> $LOG 2>&1
+	exec >> "$LOG" 2>&1
 fi
 
 log 'stream2podcast started'
 
-if [ ! -d $RSS_DIR ]; then
+if [ ! -d "$RSS_DIR" ]; then
 	log "RSS_DIR ($RSS_DIR) does not exist. I quit."
 	exit 1
 fi
@@ -224,4 +225,4 @@ cleanup_recordings
 # Create RSS feed
 build_rss
 
-log 'Finished at' `date`
+log "Finished at $(date)"
