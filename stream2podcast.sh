@@ -5,6 +5,7 @@ YEAR=$(date +%Y)
 VERSION=1
 CONFIG=~/conf/stream2podcast.conf
 RSS_ONLY=0
+SOX_MP3_OK=0
 LOG=~/log/stream2podcast.$(date +%F).log
 
 # TODO: Define insane values for all important variables from the config file.
@@ -22,13 +23,21 @@ log () {
 ################################################################################
 
 dep_check () {
-	for APP in streamripper eyeD3; do
-		which "$APP" > /dev/null 2>&1
+	local app=''
+	for app in soxi streamripper eyeD3; do
+		which "$app" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
-			log "$APP could not be found. Please install it."
+			log "$app could not be found. Please install it."
 			exit 1
 		fi
 	done
+
+	# Check for MP3 support in sox/soxi
+	# Unfortunately, it always returns 1, regardless of if it supports MP3.
+	sox --help-format mp3 | grep 'Cannot find a format called'
+	if [ $? -ne 0 ]; then
+		SOX_MP3_OK=1
+	fi
 }
 
 ################################################################################
@@ -75,7 +84,7 @@ rip_stream () {
 	fi
 
 	# Streamripper creates .cue files which we don't want nor need
-	find "$RSS_DIR" -name '*.cue' -print0 | xargs -0r /bin/rm
+	find "$RSS_DIR" -maxdepth 1 -name '*.cue' -print0 | xargs -0r /bin/rm
 }
 
 ################################################################################
@@ -83,7 +92,7 @@ rip_stream () {
 add_tags () {
 	log "Adding ID3 tags to $RSS_DIR/$STREAM_FILE"
 
-	eyeD3 --no-color --add-image="${IMAGE}:OTHER" -Y "$YEAR" \
+	eyeD3 --add-image="${IMAGE}:OTHER" -Y "$YEAR" \
 	-a "$STREAM_AUTHOR" -G Podcast "$RSS_DIR/$STREAM_FILE" > /dev/null
 
 	if [ $? -ne 0 ]; then
@@ -95,6 +104,8 @@ add_tags () {
 ################################################################################
 
 build_rss () {
+	local file
+
 	log 'Building rss feed'
 	# Replace old rss feed with new header
 	(
@@ -113,19 +124,28 @@ build_rss () {
 	) > "$RSS_DIR/rss"
 
 	# Add entries for each file
-	for FILE in $(ls -1 $RSS_DIR/*.mp3); do
-		FILE_DATE=$(date -r "$FILE")
-		FILE_NAME=$(/bin/basename "$FILE")
-		FILE_SIZE=$(stat -c '%s' "$FILE")
+	# TODO: Convert this loop to use null terminated file names
+	for file in $(find "$RSS_DIR" -maxdepth 1 -name '*.mp3' | sort -rg); do
+		local file_date=$(date -r "$file")
+		local file_name=$(basename "$file")
+		local file_size=$(stat -c '%s' "$file")
+		local file_duration=0:00:00
+
+		if [ $SOX_MP3_OK -eq 1 ]; then
+			file_duration=$(soxi -d "$file" 2>&1)
+			if [ $? -eq 0 ]; then
+				file_duration=$(echo "$file_duration" | tail -1)
+			fi
+		fi
+
 		(
 			echo '<item>'
-			echo "<title>$FILE_NAME</title>"
-			echo "<pubDate>$FILE_DATE</pubDate>"
-			# TODO: read the duration from the file
+			echo "<title>$file_name</title>"
+			echo "<pubDate>$file_date</pubDate>"
 			echo "<itunes:duration>2:03:00</itunes:duration>"
 			echo "<itunes:author>$STREAM_AUTHOR</itunes:author>"
-			echo "<guid>$FILE_NAME</guid>"
-			echo "<enclosure url='$RSS_URL/$FILE_NAME' length='$FILE_SIZE' type='audio/mpeg'/>"
+			echo "<guid>$file_name</guid>"
+			echo "<enclosure url='$RSS_URL/$file_name' length='$file_size' type='audio/mpeg'/>"
 			echo '</item>'
 		) >> "$RSS_DIR/rss"
 	done
