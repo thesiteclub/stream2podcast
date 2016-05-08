@@ -1,19 +1,5 @@
 #! /bin/bash
 
-DEBUG=0
-YEAR=$(date +%Y)
-VERSION=1
-CONFIG=~/conf/stream2podcast.conf
-RSS_ONLY=0
-SOX_MP3_OK=0
-LOG=~/log/stream2podcast.$(date +%F).log
-
-# TODO: Define insane values for all important variables from the config file.
-# Check to ensure all are set. Set sane defaults for the rest.
-
-MAX_AGE=0
-MAX_FILES=0
-
 ################################################################################
 
 log () {
@@ -23,7 +9,8 @@ log () {
 ################################################################################
 
 dep_check () {
-	local app=''
+	local app
+
 	for app in soxi streamripper eyeD3; do
 		which "$app" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
@@ -104,7 +91,7 @@ add_tags () {
 ################################################################################
 
 build_rss () {
-	local file
+	local file file_date file_name file_size file_duration
 
 	log 'Building rss feed'
 	# Replace old rss feed with new header
@@ -126,12 +113,12 @@ build_rss () {
 	# Add entries for each file
 	# TODO: Convert this loop to use null terminated file names
 	for file in $(find "$RSS_DIR" -maxdepth 1 -name '*.mp3' | sort -rg); do
-		local file_date=$(date -r "$file")
-		local file_name=$(basename "$file")
-		local file_size=$(stat -c '%s' "$file")
-		local file_duration=0:00:00
+		file_date=$(date -r "$file")
+		file_name=$(basename "$file")
+		file_size=$(stat -c '%s' "$file")
+		file_duration=0:00:00
 
-		if [ $SOX_MP3_OK -eq 1 ]; then
+		if [ "$SOX_MP3_OK" -eq 1 ]; then
 			file_duration=$(soxi -d "$file" 2>&1)
 			if [ $? -eq 0 ]; then
 				file_duration=$(echo "$file_duration" | tail -1)
@@ -160,13 +147,13 @@ cleanup_recordings () {
 	log 'Deleting old recordings'
 
 	# Delete old files
-	if [ $MAX_AGE -gt 0 ]; then
-		find "$RSS_DIR" -maxdepth 1 -name '*.mp3' -ctime +$MAX_AGE -type f -print0 | \
+	if [ "$MAX_AGE" -gt 0 ]; then
+		find "$RSS_DIR" -maxdepth 1 -name '*.mp3' -ctime "+$MAX_AGE" -type f -print0 | \
 			xargs -0r /bin/rm
 	fi
 
 	# Delete files beyond $MAX_FILES. Sorted by name. Should this by date?
-	if [ $MAX_FILES -gt 0 ]; then
+	if [ "$MAX_FILES" -gt 0 ]; then
 		find "$RSS_DIR" -maxdepth 1 -name '*.mp3' -type f -print0 | sort -z | \
 			cut -d '' -f 1-10 | xargs -0r /bin/rm
 	fi
@@ -186,63 +173,85 @@ usage()
 
 ################################################################################
 
-while getopts 'c:DrV' o; do
-	case "$o" in
-	'c')
-		CONFIG="$OPTARG"
-		;;
-	'D')
-		DEBUG=1
-		;;
-	'r')
-		RSS_ONLY=1
-		;;
-	'V')
-		echo "$VERSION"
-		exit 0
-		;;
-	'?')
-		usage
+main () {
+	local -i DEBUG=0
+	local    YEAR=$(date +%Y)
+	local -i VERSION=1
+	local    CONFIG="~/conf/stream2podcast.conf"
+	local -i RSS_ONLY=0
+	local -i SOX_MP3_OK=0
+	local    LOG="~/log/stream2podcast.$(date +%F).log"
+
+	# TODO: Define insane values for all important variables from the config file.
+	# Check to ensure all are set. Set sane defaults for the rest.
+
+	local -i MAX_AGE=0
+	local -i MAX_FILES=0
+
+	while getopts 'c:DrV' o; do
+		case "$o" in
+		'c')
+			CONFIG="$OPTARG"
+			;;
+		'D')
+			DEBUG=1
+			;;
+		'r')
+			RSS_ONLY=1
+			;;
+		'V')
+			echo "$VERSION"
+			exit 0
+			;;
+		'?')
+			usage
+			exit 1
+			;;
+		esac
+	done
+
+	if [ ! -e "$CONFIG" ]; then
+		log "Config file ($CONFIG) does not exist. I quit."
 		exit 1
-		;;
-	esac
-done
+	fi
 
-if [ ! -e "$CONFIG" ]; then
-	log "Config file ($CONFIG) does not exist. I quit."
-	exit 1
-fi
+	source "$CONFIG"
 
-source "$CONFIG"
+	if [ "$DEBUG" -eq 0 ]; then
+		exec >> "$LOG" 2>&1
+	fi
 
-if [ $DEBUG -eq 0 ]; then
-	exec >> "$LOG" 2>&1
-fi
+	if  [ "$DEBUG" -gt 1 ]; then
+		set -o xtrace
+	fi
 
-log 'stream2podcast started'
+	log 'stream2podcast started'
 
-if [ ! -d "$RSS_DIR" ]; then
-	log "RSS_DIR ($RSS_DIR) does not exist. I quit."
-	exit 1
-fi
+	if [ ! -d "$RSS_DIR" ]; then
+		log "RSS_DIR ($RSS_DIR) does not exist. I quit."
+		exit 1
+	fi
 
-# Check for dependancies
-dep_check
+	# Check for dependancies
+	dep_check
 
-if [ $RSS_ONLY -eq 0 ]; then
-	# If we are given a playlist, pick a URL from it
-	handle_m3u
+	if [ "$RSS_ONLY" -eq 0 ]; then
+		# If we are given a playlist, pick a URL from it
+		handle_m3u
 
-	# Record stream
-	rip_stream
+		# Record stream
+		rip_stream
 
-	# Set ID3 tags, including image
-	add_tags
-fi
+		# Set ID3 tags, including image
+		add_tags
+	fi
 
-cleanup_recordings
+	cleanup_recordings
 
-# Create RSS feed
-build_rss
+	# Create RSS feed
+	build_rss
 
-log "Finished at $(date)"
+	log "Finished at $(date)"
+}
+
+main $@
